@@ -1,0 +1,147 @@
+"use client"
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import TextAreaAutosize from "react-textarea-autosize";
+import { ArrowUpIcon, Loader2Icon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { useState } from "react";
+import z from "zod";
+
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Form, FormField } from "@/components/ui/form";
+// import { useCreateProject } from "@/modules/projects/hooks/project";
+import { formSchema, PROJECT_TEMPLATES } from "@/data/projecttemplate";
+
+
+
+const ProjectForm = () => {
+  const [isFocused, setIsFocused] = useState(false);
+  const router = useRouter();
+//   const { mutateAsync, isPending } = useCreateProject();
+
+  const form = useForm({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      content: "",
+    },
+    mode: "onChange",
+  });
+
+  const handleTemplate = (prompt) => {
+    form.setValue("content", prompt);
+  };
+
+  const onSubmit = async (values) => {
+    try {
+      const res = await mutateAsync(values.content);
+      router.push(`/projects/${res.id}`);
+      toast.success("Project created successfully");
+      form.reset();
+    } catch (error) {
+      toast.error(error.message || "Failed to create project");
+    }
+  };
+
+//   const isButtonDisabled = isPending || !form.watch("content").trim();
+
+  return (
+    <div className="space-y-8">
+      {/* Templates Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {PROJECT_TEMPLATES.map((template, index) => (
+          <button
+            key={index}
+            onClick={() => handleTemplate(template.prompt)}
+            // disabled={isPending}
+            className="group relative p-4 rounded-xl border  hover:bg-accent/50 bg-accent-foreground  transition-all duration-200 text-left disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-md hover:border-primary/30"
+          >
+            <div className="flex flex-col gap-2">
+              <span className="text-3xl" role="img" aria-label={template.title}>
+                {template.emoji}
+              </span>
+              <h3 className="text-sm font-medium group-hover:text-primary transition-colors">
+                {template.title}
+              </h3>
+            </div>
+            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+          </button>
+        ))}
+      </div>
+
+      {/* Divider */}
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-accent-foreground text-white px-2">
+            Or describe your own idea
+          </span>
+        </div>
+      </div>
+
+      {/* Form */}
+      <Form {...form}>
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          className={cn(
+            "relative border  bg-accent-foregroun p-4 pt-1 rounded-xl r dark:bg-sidebar transition-all",
+            isFocused && "shadow-lg ring-2 ring-primary/20"
+          )}
+        >
+          <FormField
+            control={form.control}
+            name="content"
+            render={({ field }) => (
+              <TextAreaAutosize
+                {...field}
+                // disabled={isPending}
+                placeholder="Describe what you want to create..."
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                minRows={3}
+                maxRows={8}
+                className={cn(
+                  "pt-4 resize-none border-none w-full outline-none bg-transparentd",
+                //   isPending && "opacity-50"
+                )}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                    e.preventDefault();
+                    form.handleSubmit(onSubmit)(e);
+                  }
+                }}
+              />
+            )}
+          />
+          <div className="flex gap-x-2 items-end justify-between pt-2">
+            <div className="text-[10px] text-gray-300 font-mono">
+              <kbd className="ml-auto pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+                <span>&#8984;</span>Enter
+              </kbd>
+              &nbsp; to submit
+            </div>
+            <Button
+              className={cn(
+                "size-8 rounded-full",
+                // isButtonDisabled && "bg-muted-foreground border"
+              )}
+            //   disabled={isButtonDisabled}
+              type="submit"
+            >
+              {true ? (
+                <Loader2Icon className="size-4 animate-spin" />
+              ) : (
+                <ArrowUpIcon className="size-4" />
+              )}
+            </Button>
+          </div>
+        </form>
+      </Form>
+    </div>
+  );
+};
+
+export default ProjectForm;
